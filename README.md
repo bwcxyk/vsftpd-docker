@@ -146,19 +146,25 @@ docker logs vsftpd
 3) Create a **production container** with a custom user account, binding a data directory and enabling both active and passive mode:
 
 ```bash
-docker run -d -v /my/data/directory:/home/vsftpd \
+docker run -d \
+-v /data/ftp:/home/vsftpd \
 -p 20:20 -p 21:21 -p 21100-21110:21100-21110 \
--e FTP_USER=myuser -e FTP_PASS=mypass \
--e PASV_ADDRESS=127.0.0.1 -e PASV_MIN_PORT=21100 -e PASV_MAX_PORT=21110 \
+-e FTP_USER=myuser \
+-e FTP_PASS=mypass \
+-e PASV_ADDRESS=192.168.1.2 \
+-e PASV_MIN_PORT=21100 \
+-e PASV_MAX_PORT=21110 \
 --name vsftpd --restart=always yaokun/vsftpd
 ```
 
 4) Manually add a new FTP user to an existing container:
 ```bash
 docker exec -i -t vsftpd bash
+
 mkdir /home/vsftpd/myuser
 echo -e "myuser\nmypass" >> /etc/vsftpd/virtual_users.txt
 /usr/bin/db_load -T -t hash -f /etc/vsftpd/virtual_users.txt /etc/vsftpd/virtual_users.db
 exit
+
 docker restart vsftpd
 ```
