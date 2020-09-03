@@ -11,7 +11,7 @@ if [ "$FTP_PASS" = "**Random**" ]; then
 fi
 
 # Do not log to STDOUT by default:
-if [ "$LOG_STDOUT" = "**Boolean**" ]; then
+if [ "${LOG_STDOUT}" = "**Boolean**" ]; then
     export LOG_STDOUT=''
 else
     export LOG_STDOUT='Yes.'
@@ -25,7 +25,7 @@ echo -e "${FTP_USER}\n${FTP_PASS}" > /etc/vsftpd/virtual_users.txt
 /usr/bin/db_load -T -t hash -f /etc/vsftpd/virtual_users.txt /etc/vsftpd/virtual_users.db
 
 # Set passive mode parameters:
-if [ "$PASV_ADDRESS" = "**IPv4**" ]; then
+if [ "${PASV_ADDRESS}" = "**IPv4**" ]; then
     export PASV_ADDRESS=$(/sbin/ip route|awk '/default/ { print $3 }')
 fi
 
@@ -47,20 +47,20 @@ if [ ! $LOG_STDOUT ]; then
 cat << EOB
 	*************************************************
 	*                                               *
-	*    Docker image: fauria/vsftpd                *
-	*    https://github.com/fauria/docker-vsftpd    *
+	*    Docker image: yaokun/vsftpd                *
+	*    https://github.com/bwcxyk/vsftpd-docker    *
 	*                                               *
 	*************************************************
 
 	SERVER SETTINGS
 	---------------
-	· FTP User: $FTP_USER
-	· FTP Password: $FTP_PASS
-	· Log file: $LOG_FILE
+	· FTP User: ${FTP_USER}
+	· FTP Password: ${FTP_PASS}
+	· Log file: ${LOG_FILE}
 	· Redirect vsftpd log to STDOUT: No.
 EOB
 else
-    /usr/bin/ln -sf /dev/stdout $LOG_FILE
+    /usr/bin/ln -sf /dev/stdout ${LOG_FILE}
 fi
 
 # Run vsftpd:
