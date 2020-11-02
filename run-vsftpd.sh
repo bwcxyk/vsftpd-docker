@@ -40,7 +40,7 @@ echo "xferlog_std_format=${XFERLOG_STD_FORMAT}" >> /etc/vsftpd/vsftpd.conf
 echo "reverse_lookup_enable=${REVERSE_LOOKUP_ENABLE}" >> /etc/vsftpd/vsftpd.conf
 
 # Get log file path
-export LOG_FILE="/var/log/vsftpd.log"
+export LOG_FILE=`grep xferlog_file /etc/vsftpd/vsftpd.conf|cut -d= -f2`
 
 # stdout server info:
 if [ ! $LOG_STDOUT ]; then
