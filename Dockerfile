@@ -29,9 +29,9 @@ RUN set -x \
 # 重新安装glibc-common
 # 编译生成语言库
 RUN yum -y install kde-l10n-Chinese \
-    && yum -y reinstall glibc-common \
+    && yum -y install glibc \
     && yum clean all \
-    localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+    && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
 
 RUN chmod +x /usr/sbin/run-vsftpd.sh
 RUN mkdir -p /home/vsftpd/
