@@ -26,11 +26,11 @@ RUN set -x \
     && groupmod -g ${GROUP_ID} ftp
 
 # 安装中文包
-RUN yum install -y kde-l10n-Chinese \
-    # 重新安装glibc-common
+# 重新安装glibc-common
+# 编译生成语言库
+RUN yum -y install kde-l10n-Chinese \
     && yum -y reinstall glibc-common \
     && yum clean all \
-    # 编译生成语言库
     localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
 
 RUN chmod +x /usr/sbin/run-vsftpd.sh
