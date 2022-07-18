@@ -22,8 +22,11 @@ COPY run-vsftpd.sh /usr/sbin/
 
 RUN set -x \
     && yum install -y vsftpd iproute db4-utils db4 \
-	&& usermod -u ${USER_ID} ftp \
-	&& groupmod -g ${GROUP_ID} ftp
+    && usermod -u ${USER_ID} ftp \
+    && groupmod -g ${GROUP_ID} ftp
+    && yum install -y kde-l10n-Chinese \
+    && yum reinstall -y glibc-common \
+    && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
 
 RUN chmod +x /usr/sbin/run-vsftpd.sh
 RUN mkdir -p /home/vsftpd/
