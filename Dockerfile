@@ -24,9 +24,14 @@ RUN set -x \
     && yum install -y vsftpd iproute db4-utils db4 \
     && usermod -u ${USER_ID} ftp \
     && groupmod -g ${GROUP_ID} ftp
-    && yum install -y kde-l10n-Chinese glibc-common \
+
+# 安装中文包
+RUN yum install -y kde-l10n-Chinese \
+    # 重新安装glibc-common
+    && yum -y reinstall glibc-common \
     && yum clean all \
-    && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+    # 编译生成语言库
+    localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
 
 RUN chmod +x /usr/sbin/run-vsftpd.sh
 RUN mkdir -p /home/vsftpd/
