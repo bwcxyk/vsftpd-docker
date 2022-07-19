@@ -147,6 +147,9 @@ docker run -d \
 -e PASV_ADDRESS=192.168.1.2 \
 -e PASV_MIN_PORT=21100 \
 -e PASV_MAX_PORT=21110 \
+-e TIME_ZONE=Asiz/Shanghai \
+-e TZ=Asiz/Shanghai \
+-e LANG=zh_CN.UTF-8
 --name vsftpd --restart=always yaokun/vsftpd
 ```
 
