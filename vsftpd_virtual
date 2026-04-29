@@ -1,4 +1,4 @@
 #%PAM-1.0
-auth	required	pam_userdb.so	db=/etc/vsftpd/virtual_users
-account	required	pam_userdb.so	db=/etc/vsftpd/virtual_users
+auth	required	pam_pwdfile.so pwdfile /etc/vsftpd/virtual_users.txt
+account	required	pam_permit.so
 session	required	pam_loginuid.so

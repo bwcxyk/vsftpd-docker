@@ -1,39 +1,26 @@
-FROM centos:7
+FROM debian:trixie-slim
 
-ENV FTP_USER=**String** \
-    FTP_PASS=**Random** \
-    PASV_ADDRESS=**IPv4** \
-    PASV_ADDR_RESOLVE=NO \
-    PASV_ENABLE=YES \
+ENV FTP_USER=admin \
     PASV_MIN_PORT=21100 \
-    PASV_MAX_PORT=21110 \
-    XFERLOG_STD_FORMAT=NO \
-    LOG_STDOUT=**Boolean** \
-    FILE_OPEN_MODE=0666 \
-    LOCAL_UMASK=077 \
-    REVERSE_LOOKUP_ENABLE=YES \
-    PASV_PROMISCUOUS=NO \
-    PORT_PROMISCUOUS=NO \
-    TIME_ZONE=Asiz/Shanghai \
-    TZ=Asiz/Shanghai \
-    LANG=zh_CN.UTF-8
+    PASV_MAX_PORT=21110
 
 COPY vsftpd.conf /etc/vsftpd/
 COPY vsftpd_virtual /etc/pam.d/
-COPY docker-entrypoint.sh /
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/
 
-RUN set -x \
-    && yum install -y vsftpd iproute db4-utils db4 kde-l10n-Chinese glibc \
-	&& yum clean all \
-    && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 \
-	&& chmod +x /docker-entrypoint.sh
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        vsftpd \
+        libpam-pwdfile \
+        openssl \
+    && rm -rf /var/lib/apt/lists/*
 	
 RUN mkdir -p /home/vsftpd/ \
 	&& chown -R ftp:ftp /home/vsftpd/
 
 VOLUME /home/vsftpd
-VOLUME /var/log/vsftpd
 
-EXPOSE 20 21
+EXPOSE 20 21 21100-21110
 
-ENTRYPOINT ["sh","/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
