@@ -1,179 +1,72 @@
 # yaokun/vsftpd
 
-This Docker container implements a vsftpd server, with the following features:
+这是一个基于 Debian 的轻量级 `vsftpd` Docker 镜像，使用 PAM `pam_pwdfile` 实现虚拟用户登录。
 
- * Centos 7 base image.
- * vsftpd 3.0.2
- * Virtual users
- * Passive mode
- * Logging to a file or STDOUT.
+## 功能特性
 
-### Installation from [Docker registry hub](https://hub.docker.com/r/yaokun/vsftpd).
+- Debian slim 基础镜像
+- `vsftpd` 虚拟用户登录
+- 支持被动模式（NAT/公网环境推荐）
+- 日志输出到容器标准输出（`docker logs` 可查看）
 
-You can download the image with the following command:
+## 镜像拉取
 
 ```bash
 docker pull yaokun/vsftpd
 ```
 
-Environment variables
-----
+## 运行时环境变量
 
-This image uses environment variables to allow the configuration of some parameters at run time:
+- `FTP_USER`
+  - 默认值：`admin`
+  - 说明：FTP 用户名。
 
-* Variable name: `FTP_USER`
-* Default value: admin
-* Accepted values: Any string. Avoid whitespaces and special chars.
-* Description: Username for the default FTP account. If you don't specify it through the `FTP_USER` environment variable at run time, `admin` will be used by default.
+- `FTP_PASS`
+  - 默认值：未传入时启动自动生成 16 位随机密码
+  - 说明：FTP 密码。
 
-----
+- `PASV_ADDRESS`（必填）
+  - 说明：被动模式返回给客户端的公网 IP 或域名。
+  - 注意：未设置时容器会启动失败并退出。
 
-* Variable name: `FTP_PASS`
-* Default value: Random string.
-* Accepted values: Any string.
-* Description: If you don't specify a password for the default FTP account through `FTP_PASS`, a 16 character random string will be automatically generated. You can obtain this value through the [container logs](https://docs.docker.com/engine/reference/commandline/container_logs/).
+- `PASV_MIN_PORT`
+  - 默认值：`21100`
+  - 说明：被动模式端口范围起始值。
 
-----
+- `PASV_MAX_PORT`
+  - 默认值：`21110`
+  - 说明：被动模式端口范围结束值。
 
-* Variable name: `PASV_ADDRESS_ENABLE`
-* Default value: NO
-* Accepted values: <NO|YES>
-* Description: Enables / Disables Passive Mode
+## 端口与数据卷
 
-----
+- 暴露端口：`20`、`21`、`21100-21110`
+- 数据卷：
+  - `/home/vsftpd`（用户目录）
 
-* Variable name: `PASV_ADDRESS`
-* Default value: Docker host IP / Hostname.
-* Accepted values: Any IPv4 address or Hostname (see PASV_ADDR_RESOLVE).
-* Description: If you don't specify an IP address to be used in passive mode, the routed IP address of the Docker host will be used. Bear in mind that this could be a local address.
-
-----
-
-* Variable name: `PASV_ADDR_RESOLVE`
-* Default value: NO.
-* Accepted values: YES or NO.
-* Description: Set to YES if you want to use a hostname (as opposed to IP address) in the PASV_ADDRESS option.
-
-----
-
-* Variable name: `PASV_ENABLE`
-* Default value: YES.
-* Accepted values: YES or NO.
-* Description: Set to NO if you want to disallow the PASV method of obtaining a data connection.
-
-----
-
-* Variable name: `PASV_MIN_PORT`
-* Default value: 21100.
-* Accepted values: Any valid port number.
-* Description: This will be used as the lower bound of the passive mode port range. Remember to publish your ports with `docker -p` parameter.
-
-----
-
-* Variable name: `PASV_MAX_PORT`
-* Default value: 21110.
-* Accepted values: Any valid port number.
-* Description: This will be used as the upper bound of the passive mode port range. It will take longer to start a container with a high number of published ports.
-
-----
-
-* Variable name: `XFERLOG_STD_FORMAT`
-* Default value: NO.
-* Accepted values: YES or NO.
-* Description: Set to YES if you want the transfer log file to be written in standard xferlog format.
-
-----
-
-* Variable name: `LOG_STDOUT`
-* Default value: Empty string.
-* Accepted values: Any string to enable, empty string or not defined to disable.
-* Description: Output vsftpd log through STDOUT, so that it can be accessed through the [container logs](https://docs.docker.com/engine/reference/commandline/container_logs).
-
-----
-
-* Variable name: `FILE_OPEN_MODE`
-* Default value: 0666.
-* Accepted values: File system permissions.
-* Description: The permissions with which uploaded files are created. Umasks are applied on top of this value. You may wish to change to 0777 if you want uploaded files to be executable.
-
-----
-
-* Variable name: `LOCAL_UMASK`
-* Default value: 077.
-* Accepted values: File system permissions.
-* Description: The value that the umask for file creation is set to for local users. NOTE! If you want to specify octal values, remember the "0" prefix otherwise the value will be treated as a base 10 integer!
-
-----
-
-* Variable name: `REVERSE_LOOKUP_ENABLE`
-* Default value: YES.
-* Accepted values: YES or NO.
-* Description: Set to NO if you want to avoid performance issues where a name server doesn't respond to a reverse lookup.
-
-----
-
-* Variable name: `PASV_PROMISCUOUS`
-* Default value: NO
-* Accepted values: <NO|YES>
-* Description: Set to YES if you want to disable the PASV security check that ensures the data connection originates from the same IP address as the control connection. Only enable if you know what you are doing! The only legitimate use for this is in some form of secure tunnelling scheme, or perhaps to facilitate FXP support.
-
-----
-* Variable name: `PORT_PROMISCUOUS`
-* Default value: NO
-* Accepted values: <NO|YES>
-* Description: Set to YES if you want to disable the PORT security check that ensures that outgoing data connections can only connect to the client. Only enable if you know what you are doing! Legitimate use for this is to facilitate FXP support.
-
-----
-
-Exposed ports and volumes
-----
-
-The image exposes ports `20` and `21`. Also, exports two volumes: `/home/vsftpd`, which contains users home directories, and `/var/log/vsftpd`, used to store logs.
-
-When sharing a homes directory between the host and the container (`/home/vsftpd`) the owner user id and group id should be 14 and 80 respectively. This corresponds to ftp user and ftp group on the container, but may match something else on the host.
-
-Use cases
-----
-
-1) Create a temporary container for testing purposes:
-
-```bash
-  docker run --rm yaokun/vsftpd
-```
-
-2) Create a container in active mode using the default user account, with a binded data directory:
-
-```bash
-docker run -d -p 21:21 -v /my/data/directory:/home/vsftpd --name vsftpd yaokun/vsftpd
-# see logs for credentials:
-docker logs vsftpd
-```
-
-3) Create a **production container** with a custom user account, binding a data directory and enabling both active and passive mode:
+## 快速启动
 
 ```bash
 docker run -d \
--v /data/ftp:/home/vsftpd \
--p 20:20 -p 21:21 -p 21100-21110:21100-21110 \
--e FTP_USER=myuser \
--e FTP_PASS=mypass \
--e PASV_ADDRESS=192.168.1.2 \
--e PASV_MIN_PORT=21100 \
--e PASV_MAX_PORT=21110 \
--e TIME_ZONE=Asiz/Shanghai \
--e TZ=Asiz/Shanghai \
--e LANG=zh_CN.UTF-8
---name vsftpd --restart=always yaokun/vsftpd
+  --name vsftpd \
+  -p 20:20 \
+  -p 21:21 \
+  -p 21100-21110:21100-21110 \
+  -v /data/ftp:/home/vsftpd \
+  -e FTP_USER=myuser \
+  -e FTP_PASS=mypass \
+  -e PASV_ADDRESS=203.0.113.10 \
+  -e PASV_MIN_PORT=21100 \
+  -e PASV_MAX_PORT=21110 \
+  --restart=always \
+  yaokun/vsftpd
 ```
 
-4) Manually add a new FTP user to an existing container:
-```bash
-docker exec -i -t vsftpd bash
+如果 `PASV_ADDRESS` 使用域名，请确保客户端侧 DNS 可正常解析。
 
-mkdir /home/vsftpd/myuser
-echo -e "myuser\nmypass" >> /etc/vsftpd/virtual_users.txt
-/usr/bin/db_load -T -t hash -f /etc/vsftpd/virtual_users.txt /etc/vsftpd/virtual_users.db
-exit
+## 说明
 
-docker restart vsftpd
-```
+- 本镜像使用 `pam_pwdfile`，用户密码以哈希形式存储在 `/etc/vsftpd/virtual_users.txt`。
+- 若未设置 `FTP_PASS`，容器启动时会自动生成随机密码。
+- 被动模式可用需同时满足：
+  - `PASV_ADDRESS` 配置正确
+  - Docker 端口映射、宿主机防火墙、安全组放行与被动端口范围一致

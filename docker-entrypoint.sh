@@ -1,69 +1,53 @@
 #!/bin/bash
 
-# If no env var for FTP_USER has been specified, use 'admin':
-if [ "$FTP_USER" = "**String**" ]; then
-    export FTP_USER='admin'
+# Require mandatory envs.
+if [ -z "${FTP_USER:-}" ]; then
+    echo "ERROR: FTP_USER is required." >&2
+    exit 1
 fi
 
-# If no env var has been specified, generate a random password for FTP_USER:
-if [ "$FTP_PASS" = "**Random**" ]; then
-    export FTP_PASS=`cat /dev/urandom | tr -dc A-Z-a-z-0-9 | head -c${1:-16}`
-fi
-
-# Do not log to STDOUT by default:
-if [ "${LOG_STDOUT}" = "**Boolean**" ]; then
-    export LOG_STDOUT=''
-else
-    export LOG_STDOUT='Yes.'
+# If no env var has been specified, generate a random password for FTP_USER.
+if [ -z "${FTP_PASS:-}" ]; then
+    FTP_PASS="$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c16)"
 fi
 
 # Create home dir and update vsftpd user db:
 mkdir -p "/home/vsftpd/${FTP_USER}"
 chown -R ftp:ftp /home/vsftpd/
 
-echo -e "${FTP_USER}\n${FTP_PASS}" > /etc/vsftpd/virtual_users.txt
-/usr/bin/db_load -T -t hash -f /etc/vsftpd/virtual_users.txt /etc/vsftpd/virtual_users.db
+FTP_PASS_HASH="$(openssl passwd -6 "${FTP_PASS}")"
+echo "${FTP_USER}:${FTP_PASS_HASH}" > /etc/vsftpd/virtual_users.txt
+chmod 600 /etc/vsftpd/virtual_users.txt
 
 # Set passive mode parameters:
-if [ "${PASV_ADDRESS}" = "**IPv4**" ]; then
-    export PASV_ADDRESS=$(/sbin/ip route|awk '/default/ { print $3 }')
+if [ -z "${PASV_ADDRESS:-}" ]; then
+    echo "ERROR: PASV_ADDRESS is required. Please set a valid public IP or domain." >&2
+    exit 1
+fi
+if [ -z "${PASV_MIN_PORT:-}" ] || [ -z "${PASV_MAX_PORT:-}" ]; then
+    echo "ERROR: PASV_MIN_PORT and PASV_MAX_PORT are required." >&2
+    exit 1
+fi
+if ! [[ "${PASV_MIN_PORT}" =~ ^[0-9]+$ ]] || ! [[ "${PASV_MAX_PORT}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: PASV_MIN_PORT and PASV_MAX_PORT must be integers." >&2
+    exit 1
+fi
+if [ "${PASV_MIN_PORT}" -lt 1 ] || [ "${PASV_MIN_PORT}" -gt 65535 ] || [ "${PASV_MAX_PORT}" -lt 1 ] || [ "${PASV_MAX_PORT}" -gt 65535 ]; then
+    echo "ERROR: PASV ports must be in range 1-65535." >&2
+    exit 1
+fi
+if [ "${PASV_MIN_PORT}" -gt "${PASV_MAX_PORT}" ]; then
+    echo "ERROR: PASV_MIN_PORT must be less than or equal to PASV_MAX_PORT." >&2
+    exit 1
 fi
 
-echo "pasv_address=${PASV_ADDRESS}" >> /etc/vsftpd/vsftpd.conf
-echo "pasv_max_port=${PASV_MAX_PORT}" >> /etc/vsftpd/vsftpd.conf
-echo "pasv_min_port=${PASV_MIN_PORT}" >> /etc/vsftpd/vsftpd.conf
-echo "pasv_addr_resolve=${PASV_ADDR_RESOLVE}" >> /etc/vsftpd/vsftpd.conf
-echo "pasv_enable=${PASV_ENABLE}" >> /etc/vsftpd/vsftpd.conf
-echo "file_open_mode=${FILE_OPEN_MODE}" >> /etc/vsftpd/vsftpd.conf
-echo "local_umask=${LOCAL_UMASK}" >> /etc/vsftpd/vsftpd.conf
-echo "xferlog_std_format=${XFERLOG_STD_FORMAT}" >> /etc/vsftpd/vsftpd.conf
-echo "reverse_lookup_enable=${REVERSE_LOOKUP_ENABLE}" >> /etc/vsftpd/vsftpd.conf
-echo "pasv_promiscuous=${PASV_PROMISCUOUS}" >> /etc/vsftpd/vsftpd.conf
-echo "port_promiscuous=${PORT_PROMISCUOUS}" >> /etc/vsftpd/vsftpd.conf
+# Update passive mode parameters in-place.
+sed -i "s|###pasv_address###|${PASV_ADDRESS}|g" /etc/vsftpd/vsftpd.conf
+sed -i "s|###pasv_min_port###|${PASV_MIN_PORT}|g" /etc/vsftpd/vsftpd.conf
+sed -i "s|###pasv_max_port###|${PASV_MAX_PORT}|g" /etc/vsftpd/vsftpd.conf
 
-# Get log file path
-export LOG_FILE=`grep xferlog_file /etc/vsftpd/vsftpd.conf|cut -d= -f2`
-
-# stdout server info:
-if [ ! $LOG_STDOUT ]; then
-cat << EOB
-	*************************************************
-	*                                               *
-	*    Docker image: yaokun/vsftpd                *
-	*    https://github.com/bwcxyk/vsftpd-docker    *
-	*                                               *
-	*************************************************
-
-	SERVER SETTINGS
-	---------------
-	· FTP User: ${FTP_USER}
-	· FTP Password: ${FTP_PASS}
-	· Log file: ${LOG_FILE}
-	· Redirect vsftpd log to STDOUT: No.
-EOB
-else
-    /usr/bin/ln -sf /dev/stdout ${LOG_FILE}
-fi
+# Redirect vsftpd log to STDOUT.
+/usr/bin/ln -sf /dev/stdout /var/log/vsftpd.log
 
 # Run vsftpd:
-&>/dev/null /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
