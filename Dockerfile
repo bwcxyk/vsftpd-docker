@@ -1,6 +1,8 @@
 FROM debian:trixie-slim
 
-ENV FTP_USER=admin \
+ENV LANG=C.UTF-8 \
+    TZ=Asia/Shanghai \
+    FTP_USER=admin \
     PASV_MIN_PORT=21100 \
     PASV_MAX_PORT=21110
 
@@ -20,6 +22,7 @@ RUN mkdir -p /home/vsftpd/ \
 	&& chown -R ftp:ftp /home/vsftpd/
 
 VOLUME /home/vsftpd
+WORKDIR /home/vsftpd
 
 EXPOSE 20 21 21100-21110
 

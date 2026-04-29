@@ -9,11 +9,18 @@ fi
 # If no env var has been specified, generate a random password for FTP_USER.
 if [ -z "${FTP_PASS:-}" ]; then
     FTP_PASS="$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c16)"
+    echo "INFO: Generated FTP_PASS for user ${FTP_USER}: ${FTP_PASS}"
 fi
 
 # Create home dir and update vsftpd user db:
 mkdir -p "/home/vsftpd/${FTP_USER}"
 chown -R ftp:ftp /home/vsftpd/
+
+# Ensure vsftpd secure chroot dir exists with safe permissions.
+mkdir -p /var/run/vsftpd/empty
+chown root:root /var/run/vsftpd /var/run/vsftpd/empty
+chmod 755 /var/run/vsftpd
+chmod 555 /var/run/vsftpd/empty
 
 FTP_PASS_HASH="$(openssl passwd -6 "${FTP_PASS}")"
 echo "${FTP_USER}:${FTP_PASS_HASH}" > /etc/vsftpd/virtual_users.txt
@@ -46,8 +53,10 @@ sed -i "s|###pasv_address###|${PASV_ADDRESS}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_min_port###|${PASV_MIN_PORT}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_max_port###|${PASV_MAX_PORT}|g" /etc/vsftpd/vsftpd.conf
 
-# Redirect vsftpd log to STDOUT.
-/usr/bin/ln -sf /dev/stdout /var/log/vsftpd.log
+# Ensure log file exists and stream it to container logs.
+touch /var/log/vsftpd.log
+chmod 644 /var/log/vsftpd.log
+tail -n 0 -F /var/log/vsftpd.log &
 
 # Run vsftpd:
 exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
