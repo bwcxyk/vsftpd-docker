@@ -20,6 +20,7 @@ RUN mkdir -p /home/vsftpd/ \
 	&& chown -R ftp:ftp /home/vsftpd/
 
 VOLUME /home/vsftpd
+WORKDIR /home/vsftpd
 
 EXPOSE 20 21 21100-21110
 

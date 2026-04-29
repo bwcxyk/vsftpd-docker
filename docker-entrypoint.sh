@@ -9,6 +9,7 @@ fi
 # If no env var has been specified, generate a random password for FTP_USER.
 if [ -z "${FTP_PASS:-}" ]; then
     FTP_PASS="$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c16)"
+    echo "INFO: Generated FTP_PASS for user ${FTP_USER}: ${FTP_PASS}"
 fi
 
 # Create home dir and update vsftpd user db:
@@ -46,9 +47,10 @@ sed -i "s|###pasv_address###|${PASV_ADDRESS}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_min_port###|${PASV_MIN_PORT}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_max_port###|${PASV_MAX_PORT}|g" /etc/vsftpd/vsftpd.conf
 
+# Ensure log file exists and stream it to container logs.
+touch /var/log/vsftpd.log
+chmod 644 /var/log/vsftpd.log
+tail -n 0 -F /var/log/vsftpd.log &
+
 # Run vsftpd:
 exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
-
-# Stream logs to STDOUT after log files are created.
-while [ ! -f /var/log/vsftpd.log ]; do sleep 1; done
-tail -f /var/log/vsftpd.log
