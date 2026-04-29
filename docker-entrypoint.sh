@@ -46,8 +46,9 @@ sed -i "s|###pasv_address###|${PASV_ADDRESS}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_min_port###|${PASV_MIN_PORT}|g" /etc/vsftpd/vsftpd.conf
 sed -i "s|###pasv_max_port###|${PASV_MAX_PORT}|g" /etc/vsftpd/vsftpd.conf
 
-# Redirect vsftpd log to STDOUT.
-/usr/bin/ln -sf /dev/stdout /var/log/vsftpd.log
-
 # Run vsftpd:
 exec /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+
+# Stream logs to STDOUT after log files are created.
+while [ ! -f /var/log/vsftpd.log ]; do sleep 1; done
+tail -f /var/log/vsftpd.log
