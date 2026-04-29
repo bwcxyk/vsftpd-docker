@@ -1,6 +1,8 @@
 FROM debian:trixie-slim
 
-ENV FTP_USER=admin \
+ENV LANG=C.UTF-8 \
+    TZ=Asia/Shanghai \
+    FTP_USER=admin \
     PASV_MIN_PORT=21100 \
     PASV_MAX_PORT=21110
 
