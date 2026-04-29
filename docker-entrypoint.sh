@@ -16,6 +16,12 @@ fi
 mkdir -p "/home/vsftpd/${FTP_USER}"
 chown -R ftp:ftp /home/vsftpd/
 
+# Ensure vsftpd secure chroot dir exists with safe permissions.
+mkdir -p /var/run/vsftpd/empty
+chown root:root /var/run/vsftpd /var/run/vsftpd/empty
+chmod 755 /var/run/vsftpd
+chmod 555 /var/run/vsftpd/empty
+
 FTP_PASS_HASH="$(openssl passwd -6 "${FTP_PASS}")"
 echo "${FTP_USER}:${FTP_PASS_HASH}" > /etc/vsftpd/virtual_users.txt
 chmod 600 /etc/vsftpd/virtual_users.txt
